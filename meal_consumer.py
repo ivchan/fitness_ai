@@ -79,7 +79,7 @@ def analyze_image(base64_image):
     model="grok-4",  # 確認支援 Structured Outputs 的模型
     messages=messages,
     max_tokens=1000,
-    temperature=0.3,
+    temperature=0.1,
     response_format=response_format  # 關鍵：強制結構化輸出
   )
   return response.choices[0].message.content

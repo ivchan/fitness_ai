@@ -1,0 +1,23 @@
+# top-most EditorConfig file
+root = true
+
+[*]
+# Unix-style newlines
+end_of_line = lf
+# Ensure file ends with a newline
+insert_final_newline = true
+# Remove trailing whitespace
+trim_trailing_whitespace = true
+# Set default charset
+charset = utf-8
+
+[*.py]
+# 4 space indentation for Python files
+indent_style = space
+indent_size = 2
+# Optionally, set a max line length as recommended by PEP 8
+# max_line_length = 80
+
+[Makefile]
+# Makefiles must use tabs
+indent_style = tab

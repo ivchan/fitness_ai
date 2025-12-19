@@ -7,6 +7,8 @@ import time
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from meal_photo_request_dto import MealPhotoDto
+
 load_dotenv()
 
 client = OpenAI(
@@ -134,7 +136,9 @@ def process_message(ch, method, props, body):
 
     # --- Your message processing logic here ---
     # Example: time.sleep(1) to simulate work
-    request_obj = json.loads(message)
+    request_dict = json.loads(message)
+    request_obj = MealPhotoDto(**request_dict)
+
     request_id = request_obj.request_id
     image64 = request_obj.imageBase64
     result_json = analyze_image(request_id, image64)

@@ -17,6 +17,7 @@ client = OpenAI(
 meal_analysis_schema = {
   "type": "object",
   "properties": {
+    "request_id": {"type": "string", "description": "請求編號"},
     "meal_name": {"type": "string", "description": "食物名稱"},
     "fitness_rating": {"type": "string", "description": "建議進食評級, 分為 [建議多吃, 建議吃, 普通, 不建議吃, 不能吃] 幾個選項"},
     "totalCalories": {"type": "number", "description": "總熱量（數字）"},
@@ -61,7 +62,7 @@ prompt = """
 以香港繁體中文回答
 """
 
-def analyze_image(base64_image):
+def analyze_image(request_id, base64_image):
   """呼叫 Grok API 進行圖片分析（使用 Structured Outputs）"""
   data_url = f"data:image/jpeg;base64,{base64_image}"
 
@@ -98,27 +99,20 @@ def convert_to_base64(file_path):
   except Exception as e:
     return f"Error occured: {e}"
 
-def test_grok():
-  file_path = 'image/beef.png'
-
-  image_base64 = convert_to_base64(file_path)
-  result_json = analyze_image(image_base64)
-
-  result_obj = json.loads(result_json)
-  print(json.dumps(result_obj, indent=4, ensure_ascii=False))
+#def test_grok():
+#  file_path = 'image/beef.png'
+#
+#  image_base64 = convert_to_base64(file_path)
+#  result_json = analyze_image(image_base64)
+#
+#  result_obj = json.loads(result_json)
+#  print(json.dumps(result_obj, indent=4, ensure_ascii=False))
 
 def setup_pika(queue_name):
   parameters = pika.URLParameters(os.getenv("AMQP_URL"))
   parameters.socket_timeout = 10.0
-  #parameters.heartbeat=600,
+  #parameters.heartbeat = 600
   parameters.blocked_connection_timeout=300
-  #connection_param = pika.ConnectionParameters(
-  #  #amqps://rafhmekk:FmnVdsNcLo4-QxTJBNgMEZQFZhLjq3So@gerbil.rmq.cloudamqp.com/rafhmekk
-  #  host='gerbil.rmq.cloudamqp.com',
-  #  port=5672,
-  #  virtual_host='rafhmekk',
-  #  credentials=pika.PlainCredentials('rafhmekk', 'FmnVdsNcLo4-QxTJBNgMEZQFZhLjq3So')
-  #)
 
   connection = pika.BlockingConnection(parameters)
   channel = connection.channel()
@@ -130,17 +124,27 @@ def setup_pika(queue_name):
   )
   return connection
 
-def process_message(ch, method, properties, body):
-  """Callback function to process incoming messages."""
+def submit_return_queue(request_id, result_json):
+  return
+
+def process_message(ch, method, props, body):
   try:
     message = body.decode('utf-8')
     print(f"Received message: {message}")
 
     # --- Your message processing logic here ---
     # Example: time.sleep(1) to simulate work
+    request_obj = json.loads(message)
+    request_id = request_obj.request_id
+    image64 = request_obj.imageBase64
+    result_json = analyze_image(request_id, image64)
+
+    # submit return-queue
+    submit_return_queue(request_id, result_json)
 
     # Acknowledge the message only after successful processing
     ch.basic_ack(delivery_tag=method.delivery_tag)
+
   except Exception as e:
     print(f"Error processing message: {e}")
     # Reject and requeue (or discard with requeue=False)

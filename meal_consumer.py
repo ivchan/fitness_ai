@@ -2,6 +2,8 @@ import os
 import json
 import base64
 import pika
+import logging
+import time
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -96,10 +98,109 @@ def convert_to_base64(file_path):
   except Exception as e:
     return f"Error occured: {e}"
 
-file_path = 'image/beef.png'
+def test_grok():
+  file_path = 'image/beef.png'
 
-image_base64 = convert_to_base64(file_path)
-result_json = analyze_image(image_base64)
+  image_base64 = convert_to_base64(file_path)
+  result_json = analyze_image(image_base64)
 
-result_obj = json.loads(result_json)
-print(json.dumps(result_obj, indent=4, ensure_ascii=False))
+  result_obj = json.loads(result_json)
+  print(json.dumps(result_obj, indent=4, ensure_ascii=False))
+
+def setup_pika(queue_name):
+  parameters = pika.URLParameters(os.getenv("AMQP_URL"))
+  parameters.socket_timeout = 10.0
+  #parameters.heartbeat=600,
+  parameters.blocked_connection_timeout=300
+  #connection_param = pika.ConnectionParameters(
+  #  #amqps://rafhmekk:FmnVdsNcLo4-QxTJBNgMEZQFZhLjq3So@gerbil.rmq.cloudamqp.com/rafhmekk
+  #  host='gerbil.rmq.cloudamqp.com',
+  #  port=5672,
+  #  virtual_host='rafhmekk',
+  #  credentials=pika.PlainCredentials('rafhmekk', 'FmnVdsNcLo4-QxTJBNgMEZQFZhLjq3So')
+  #)
+
+  connection = pika.BlockingConnection(parameters)
+  channel = connection.channel()
+  channel.queue_declare(
+    queue = queue_name,
+    durable=True,
+    exclusive=False,
+    auto_delete=False
+  )
+  return connection
+
+def process_message(ch, method, properties, body):
+  """Callback function to process incoming messages."""
+  try:
+    message = body.decode('utf-8')
+    print(f"Received message: {message}")
+
+    # --- Your message processing logic here ---
+    # Example: time.sleep(1) to simulate work
+
+    # Acknowledge the message only after successful processing
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+  except Exception as e:
+    print(f"Error processing message: {e}")
+    # Reject and requeue (or discard with requeue=False)
+    ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+
+def start_consumer():
+  while True:
+    try:
+      logging.info("Attempting to connect to RabbitMQ...")
+      #connection = pika.BlockingConnection(connection_params)
+      queue_name = "user_134_queue"
+      connection = setup_pika(queue_name)
+      channel = connection.channel()
+
+      # Declare queue (idempotent - creates if not exists)
+      channel.queue_declare(queue=queue_name, durable=True)
+
+      # Fair dispatch: only send next message after ack
+      channel.basic_qos(prefetch_count=1)
+
+      # Set up consumer
+      channel.basic_consume(
+        queue=queue_name,
+        on_message_callback=process_message,
+        auto_ack=False  # Manual ack for reliability
+      )
+
+      logging.info(f"Connected! Waiting for messages on queue '{queue_name}'. To exit press CTRL+C")
+      channel.start_consuming()  # Blocks here until connection/channel issue
+
+    except pika.exceptions.AMQPConnectionError as e:
+      logging.error(f"Connection error: {e}. Retrying in 5 seconds...")
+      time.sleep(5)
+    except pika.exceptions.ChannelClosedByBroker as e:
+      logging.error(f"Channel closed by broker: {e}. Reconnecting...")
+      time.sleep(5)
+    except pika.exceptions.ConnectionClosed as e:
+      logging.error(f"Connection closed: {e}. Retrying in 5 seconds...")
+      time.sleep(5)
+    except KeyboardInterrupt:
+      logging.info("Interrupted by user. Closing connection...")
+      if 'connection' in locals() and connection.is_open:
+          connection.close()
+      break
+    except Exception as e:
+      logging.error(f"Unexpected error: {e}. Retrying in 5 seconds...")
+      time.sleep(5)
+      if 'connection' in locals() and connection.is_open:
+          connection.close()
+
+# Main
+#queue_name = "user_134_queue"
+#connection = setup_pika(queue_name)
+#print(f"Queue '{queue_name}' is ready.")
+#connection.close()
+logging.basicConfig(
+  level=logging.INFO,
+  format='%(asctime)s - %(levelname)s - %(message)s',
+  handlers=[
+    logging.FileHandler("ftrack-ai.log"),
+    logging.StreamHandler()
+  ])
+start_consumer()

@@ -8,8 +8,6 @@ import redis
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from meal_photo_request_dto import MealPhotoDto
-
 load_dotenv()
 
 client = OpenAI(
@@ -227,4 +225,12 @@ logging.basicConfig(
     logging.FileHandler("ftrack-ai.log"),
     logging.StreamHandler()
   ])
-start_consumer()
+#start_consumer()
+#redis_client.set("tst001", "HELLO WORLD 12345")
+#result = redis_client.get("tst001")
+#print(result)
+#with open('image/black_coffee.jpg', 'rb') as image_file:
+#  base64_string = base64.b64encode(image_file.read()).decode('utf-8')
+#redis_client.set('image0002', base64_string)
+print(redis_client.get('image0001'))
+print(redis_client.get('image0002'))

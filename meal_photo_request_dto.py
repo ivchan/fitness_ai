@@ -1,6 +1,5 @@
 import json
 
 class MealPhotoRequestDto:
-  def __init__(self, request_id, imageBase64):
+  def __init__(self, request_id):
     self.request_id = request_id
-    self.imageBase64 = imageBase64

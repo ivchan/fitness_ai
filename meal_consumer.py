@@ -4,6 +4,7 @@ import base64
 import pika
 import logging
 import time
+import redis
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -14,6 +15,14 @@ load_dotenv()
 client = OpenAI(
   api_key = os.getenv("XAI_API_KEY"),
   base_url = "https://api.x.ai/v1"
+)
+
+redis_client = redis.Redis(
+  host='redis-16559.crce178.ap-east-1-1.ec2.cloud.redislabs.com',
+    port=16559,
+    decode_responses=True,
+    username="default",
+    password="6USANIGXDJfVesc0eMG7FFRl8M8hQ5Co",
 )
 
 meal_analysis_schema = {
@@ -140,7 +149,12 @@ def process_message(ch, method, props, body):
     request_obj = MealPhotoDto(**request_dict)
 
     request_id = request_obj.request_id
-    image64 = request_obj.imageBase64
+
+
+    # image64 = request_obj.imageBase64
+    redis_content = redis_client.get('image-request-' + request_id)
+    print(redis_content)
+
     result_json = analyze_image(request_id, image64)
 
     # submit return-queue

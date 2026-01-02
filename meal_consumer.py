@@ -18,11 +18,13 @@ client = OpenAI(
 )
 
 redis_client = redis.Redis(
-  host='redis-16559.crce178.ap-east-1-1.ec2.cloud.redislabs.com',
-    port=16559,
-    decode_responses=True,
-    username="default",
-    password="6USANIGXDJfVesc0eMG7FFRl8M8hQ5Co",
+  # host='redis-16559.crce178.ap-east-1-1.ec2.cloud.redislabs.com',
+  host= os.getenv("REDIS_HOST"),
+  port=16559,
+  decode_responses=True,
+  username="default",
+  #password="6USANIGXDJfVesc0eMG7FFRl8M8hQ5Co",
+  password=os.getenv("REDIS_PWD"),
 )
 
 meal_analysis_schema = {

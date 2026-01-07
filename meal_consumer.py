@@ -18,11 +18,11 @@ client = OpenAI(
 redis_client = redis.Redis(
   # host='redis-16559.crce178.ap-east-1-1.ec2.cloud.redislabs.com',
   host= os.getenv("REDIS_HOST"),
-  port=16559,
+  port=6379,
   decode_responses=True,
-  username="default",
+  #username="default",
   #password="6USANIGXDJfVesc0eMG7FFRl8M8hQ5Co",
-  password=os.getenv("REDIS_PWD"),
+  #password=os.getenv("REDIS_PWD"),
 )
 
 meal_analysis_schema = {
@@ -88,6 +88,8 @@ def analyze_image(request_id, base64_image):
       }
     ]
   }]
+
+  #print(messages)
 
   response = client.chat.completions.create(
     model="grok-4",  # 確認支援 Structured Outputs 的模型
@@ -229,8 +231,12 @@ logging.basicConfig(
 #redis_client.set("tst001", "HELLO WORLD 12345")
 #result = redis_client.get("tst001")
 #print(result)
-#with open('image/black_coffee.jpg', 'rb') as image_file:
+#with open('image/veg_01.jpg', 'rb') as image_file:
 #  base64_string = base64.b64encode(image_file.read()).decode('utf-8')
 #redis_client.set('image0002', base64_string)
-print(redis_client.get('image0001'))
-print(redis_client.get('image0002'))
+#print(redis_client.get('image0001'))
+#print(redis_client.get('image0002'))
+base64_string = redis_client.get("MEALIMAGE_d51b46b5-5693-4f4b-b92c-45da7887173a")
+#print(base64_string)
+result_json = analyze_image("U123", base64_string)
+print(result_json)
